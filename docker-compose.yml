@@ -2,23 +2,44 @@ version: '3.8'
 
 services:
     php:
-        container_name: '${COMPOSE_PROJECT_NAME}-php'
+        container_name: 'php'
         build:
             context: ./php
         command: php-fpm
         ports:
-            - '${SYMFONY_PORT}:9000'
+            - '${SYMFONY_PORT:?err}:9000'
         volumes:
             - ./symfony:${WEB_PATH}
         working_dir: ${WEB_PATH}
 
+    database:
+        container_name: 'database'
+        image: mysql:8.0
+        command: --default-authentication-plugin=mysql_native_password
+        cap_add:
+            - SYS_NICE
+        environment:
+            MYSQL_ROOT_PASSWORD: '${DATABASE_ROOT_PASSWORD:?err}'
+            MYSQL_DATABASE: '${DATABASE_DATABASE:?err}'
+            MYSQL_USER: '${DATABASE_USER:?err}'
+            MYSQL_PASSWORD: '${DATABASE_USER_PASSWORD:?err}'
+        ports:
+            - '${DATABASE_PORT:?err}:3306'
+        volumes:
+            - ./mysql:/var/lib/mysql
+        healthcheck:
+            test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost", "-uroot", "-p${DATABASE_ROOT_PASSWORD}" ]
+            interval: 5s
+            timeout: 5s
+            retries: 20
+
     nginx:
-        container_name: '${COMPOSE_PROJECT_NAME}-nginx'
+        container_name: 'nginx'
         image: nginx:stable-alpine
         ports:
             - '8080:80'
         volumes:
-            - ./symfony:${WEB_PATH}
+            - ./symfony:${WEB_PATH:?err}
             - ./logs/nginx:/var/log/nginx
             - ./nginx/.conf:/etc/nginx/conf.d
         depends_on:
