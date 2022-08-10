@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+    php:
+        container_name: '${COMPOSE_PROJECT_NAME}-php'
+        build:
+            context: ./php
+        command: php-fpm
+        ports:
+            - '${SYMFONY_PORT}:9000'
+        volumes:
+            - ./symfony:${WEB_PATH}
+        working_dir: ${WEB_PATH}
+
+    nginx:
+        container_name: '${COMPOSE_PROJECT_NAME}-nginx'
+        image: nginx:stable-alpine
+        ports:
+            - '8080:80'
+        volumes:
+            - ./symfony:${WEB_PATH}
+            - ./logs/nginx:/var/log/nginx
+            - ./nginx/.conf:/etc/nginx/conf.d
+        depends_on:
+            - php
